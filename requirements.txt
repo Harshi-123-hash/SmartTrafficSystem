@@ -5,4 +5,4 @@ numpy
 torch
 torchvision
 imageio-ffmpeg
-gunicorn app:app
+gunicorn
