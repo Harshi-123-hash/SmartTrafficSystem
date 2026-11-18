@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Videos - ITMS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: linear-gradient(180deg, #1b1844 0%, #1c194a 100%);
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 36px 24px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+        }
+
+        .back-link {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 8px 14px;
+            border-radius: 6px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .subtitle {
+            margin: 0 0 26px;
+            font-size: 15px;
+            color: #e2e8f0;
+        }
+
+        .field-group {
+            margin-bottom: 20px;
+        }
+
+        .field-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #f8fafc;
+        }
+
+        .file-bar {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 5px;
+            padding: 8px 10px;
+        }
+
+        .file-bar input[type="file"] {
+            width: 100%;
+            color: #e2e8f0;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .file-bar input[type="file"]::file-selector-button {
+            background: #f1f5f9;
+            color: #0f172a;
+            border: 1px solid #94a3b8;
+            border-radius: 3px;
+            padding: 4px 10px;
+            margin-right: 10px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .file-bar input[type="file"]::file-selector-button:hover {
+            background: #e2e8f0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 10px;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            cursor: pointer;
+            background: linear-gradient(90deg, #9333ea 0%, #c026d3 28%, #ea580c 72%, #f97316 100%);
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .submit-btn:hover {
+            opacity: 0.94;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .status-msg {
+            margin-top: 16px;
+            padding: 12px 14px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .status-msg.info {
+            display: block;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(96, 165, 250, 0.45);
+            color: #dbeafe;
+        }
+
+        .status-msg.error {
+            display: block;
+            background: rgba(239, 68, 68, 0.22);
+            border: 1px solid rgba(248, 113, 113, 0.5);
+            color: #fee2e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="top-row">
+            <h1>Upload Lane Videos</h1>
+            <a class="back-link" href="/">← Back to Accident Detection</a>
+        </div>
+
+        <p class="subtitle">Please upload one video file for each of the four lanes.</p>
+
+        <form id="laneUploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="field-group">
+                <label for="lane1">Lane 1 Video:</label>
+                <div class="file-bar">
+                    <input type="file" id="lane1" name="lane1" accept="video/*" required>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="lane2">Lane 2 Video:</label>
+                <div class="file-bar">
+                    <input type="file" id="lane2" name="lane2" accept="video/*" required>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="lane3">Lane 3 Video:</label>
+                <div class="file-bar">
+                    <input type="file" id="lane3" name="lane3" accept="video/*" required>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label for="lane4">Lane 4 Video:</label>
+                <div class="file-bar">
+                    <input type="file" id="lane4" name="lane4" accept="video/*" required>
+                </div>
+            </div>
+
+            <button id="uploadStartBtn" class="submit-btn" type="submit">Upload and Start</button>
+        </form>
+
+        <div id="statusBox" class="status-msg" role="status"></div>
+    </div>
+
+    <script>
+    "use strict";
+
+    const form = document.getElementById("laneUploadForm");
+    const submitBtn = document.getElementById("uploadStartBtn");
+    const statusBox = document.getElementById("statusBox");
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const lanes = ["lane1", "lane2", "lane3", "lane4"];
+        const formData = new FormData();
+
+        for (const lane of lanes) {
+            const input = document.getElementById(lane);
+            if (!input.files || !input.files.length) {
+                statusBox.textContent = `Please select a video file for ${lane.toUpperCase()}.`;
+                statusBox.className = "status-msg error";
+                return;
+            }
+            formData.append(lane, input.files[0]);
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Uploading and Starting...";
+        statusBox.textContent = "Uploading 4 lane videos and initializing 4-lane traffic detection...";
+        statusBox.className = "status-msg info";
+
+        try {
+            const response = await fetch("/upload", {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.message || "Failed to upload lane videos.");
+            }
+
+            window.location.href = data.redirect_url || "/dashboard";
+        } catch (err) {
+            statusBox.textContent = `Error: ${err.message}`;
+            statusBox.className = "status-msg error";
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Upload and Start";
+        }
+    });
+    </script>
+</body>
+</html>

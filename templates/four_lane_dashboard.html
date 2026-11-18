@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Traffic Dashboard | ITMS</title>
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            color: #172033;
+            background: #e9eef5;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 18px 0 40px; }
+
+        .page-container {
+            width: 90%;
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .page-header h1 { margin: 0; font-size: 24px; color: #1e293b; }
+
+        .header-links {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 13px;
+            border: 1px solid #93c5fd;
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 7px;
+        }
+
+        .back-link:hover {
+            background: #eff6ff;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: 0;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+        }
+
+        .btn-start { background: #1d70b8; }
+        .btn-start:hover { background: #165994; }
+        .btn-stop { background: #c82333; }
+        .btn-stop:hover { background: #a71d2a; }
+        .btn-analysis { background: #15803d; display: none; }
+        .btn-analysis:hover { background: #166534; }
+
+        .control-msg { font-size: 13px; color: #475569; font-weight: 600; }
+
+        .amb-banner {
+            display: none;
+            background: #dc2626;
+            color: #fff;
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .summary-bar {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            flex-wrap: wrap;
+            font-size: 14px;
+        }
+
+        .legend-items {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .lanes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 16px;
+        }
+
+        .lane-card {
+            width: 100%;
+            height: 340px;
+            display: flex;
+            flex-direction: row;
+            border: 2px solid grey;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000000;
+        }
+
+        .lane-card.is-green { border-color: #16a34a; }
+        .lane-card.is-yellow { border-color: #f59e0b; }
+
+        .signal-area {
+            width: 80px;
+            height: 340px;
+            background: #1e293b;
+            border-right: 1px solid #334155;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 18px;
+            padding: 10px 6px;
+        }
+
+        .lane-label { color: #f8fafc; font-size: 12px; font-weight: 700; }
+
+        .bulb {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #334155;
+            border: 2px solid #475569;
+        }
+
+        .bulb.red.active { background: #ef4444; box-shadow: 0 0 14px #ef4444; }
+        .bulb.yellow.active { background: #f59e0b; box-shadow: 0 0 14px #f59e0b; }
+        .bulb.green.active { background: #22c55e; box-shadow: 0 0 14px #22c55e; }
+
+        .video-area {
+            width: calc(100% - 80px);
+            height: 340px;
+            position: relative;
+            background: #000000;
+        }
+
+        .video-area img.video-feed {
+            width: 100%;
+            height: calc(100% - 32px);
+            object-fit: cover;
+            object-position: center top;
+            display: block;
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #94a3b8;
+            font-size: 13px;
+            text-align: center;
+            padding: 16px;
+        }
+
+        .traffic-top-right {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            padding: 4px 11px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #ffffff;
+            background: #334155;
+            z-index: 3;
+            display: none;
+        }
+
+        .traffic-top-right.LOW { background: #16a34a; }
+        .traffic-top-right.MEDIUM { background: #d97706; }
+        .traffic-top-right.HIGH { background: #dc2626; }
+        .traffic-top-right.ANALYSING { background: #2563eb; }
+
+        .overlay-bottom {
+            width: 100%;
+            height: 32px;
+            position: absolute;
+            bottom: 0; left: 0;
+            background: #000000;
+            color: #ffffff;
+            font-size: 12.5px;
+            font-weight: 600;
+            padding: 0 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 3;
+        }
+
+        .analysis-panel {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+        th, td { padding: 10px 14px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+        th:first-child, td:first-child { text-align: left; font-weight: 700; }
+        th { background: #f1f5f9; }
+        tbody tr:last-child { background: #f8fafc; font-weight: 700; }
+
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 230px;
+            padding: 24px 16px 8px;
+            border-bottom: 2px solid #94a3b8;
+        }
+
+        .bar-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            width: 150px;
+        }
+
+        .bar-stack {
+            width: 56px;
+            min-height: 4px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            flex-direction: column-reverse;
+            overflow: hidden;
+        }
+
+        .seg-car { background: #16a34a; }
+        .seg-truck { background: #ea580c; }
+        .seg-moto { background: #0284c7; }
+        .seg-bus { background: #c026d3; }
+        .seg-amb { background: #dc2626; }
+
+        .bar-labels {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .lanes-grid { grid-template-columns: 1fr; }
+            .legend-items { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-container">
+    <div class="page-header">
+        <h1>Live Traffic Dashboard</h1>
+        <div class="header-links">
+            <a class="back-link" href="/upload">↑ Upload New Lane Videos</a>
+            <a class="back-link" href="/">← Back to Accident Detection</a>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="startBtn" class="btn-start" type="button">Start Four-Lane Detection</button>
+        <button id="stopBtn" class="btn-stop" type="button">Stop</button>
+        <button id="viewAnalysisBtn" class="btn-analysis" type="button">View Analysis</button>
+        <span id="controlMsg" class="control-msg">Ready to start four-lane processing.</span>
+    </div>
+
+    <div id="ambBanner" class="amb-banner"></div>
+
+    <div class="summary-bar">
+        <span>Active lane: <strong id="activeGreenLane">—</strong></span>
+        <span>Phase: <strong id="systemState">STOPPED</strong></span>
+        <span>Total vehicles passed: <strong id="totalVehicles">0</strong></span>
+        <div class="legend-items">
+            <span style="color:#16a34a;">■ Car</span>
+            <span style="color:#ea580c;">■ Truck</span>
+            <span style="color:#0284c7;">■ Motorcycle</span>
+            <span style="color:#c026d3;">■ Bus</span>
+            <span style="color:#dc2626;">■ Ambulance</span>
+        </div>
+    </div>
+
+    <div class="lanes-grid">
+        {% for lane_num in [1, 2, 3, 4] %}
+        {% set lane_id = "lane" ~ lane_num %}
+        <div id="card-{{ lane_id }}" class="lane-card">
+            <div class="signal-area">
+                <span class="lane-label">LANE {{ lane_num }}</span>
+                <div id="red-{{ lane_id }}" class="bulb red active"></div>
+                <div id="yellow-{{ lane_id }}" class="bulb yellow"></div>
+                <div id="green-{{ lane_id }}" class="bulb green"></div>
+            </div>
+
+            <div class="video-area">
+                <img id="stream-{{ lane_id }}" class="video-feed" alt="Lane {{ lane_num }} feed" style="display: none;">
+                <div id="placeholder-{{ lane_id }}" class="video-placeholder">
+                    Click "Start Four-Lane Detection" to load Lane {{ lane_num }}
+                </div>
+                <div id="traffic-badge-{{ lane_id }}" class="traffic-top-right">Traffic: PENDING</div>
+                <div class="overlay-bottom">
+                    <span>Vehicles passed: <span id="passed-{{ lane_id }}">0</span></span>
+                    <span>Ambulance: <span id="amb-{{ lane_id }}">No</span></span>
+                    <span id="timer-wrap-{{ lane_id }}">Timer: <span id="timer-{{ lane_id }}">—</span></span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <section id="analysisPanel" class="analysis-panel">
+        <h2 style="margin:0;">Four-Lane Traffic &amp; Vehicle Classification Analysis</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Lane</th>
+                    <th>Traffic Density</th>
+                    <th>Max Vehicles (3s Yellow)</th>
+                    <th>Cars</th>
+                    <th>Trucks</th>
+                    <th>Motorcycles</th>
+                    <th>Buses</th>
+                    <th>Ambulances</th>
+                    <th>Total Vehicles Passed</th>
+                </tr>
+            </thead>
+            <tbody id="analysisTableBody"></tbody>
+        </table>
+        <div>
+            <div id="barChart" class="bar-chart"></div>
+            <div id="barLabels" class="bar-labels"></div>
+        </div>
+    </section>
+</div>
+
+<script>
+"use strict";
+
+const LANES = ["lane1", "lane2", "lane3", "lane4"];
+const byId = (id) => document.getElementById(id);
+let streamsStarted = false;
+let latestSnapshot = null;
+
+function formatLaneLabel(rawId) {
+    if (!rawId || rawId === "—") return "—";
+    return String(rawId).replace(/^lane[_]?(\d+)$/i, "Lane $1");
+}
+
+function enableStreams() {
+    if (streamsStarted) return;
+    streamsStarted = true;
+    for (const laneId of LANES) {
+        const img = byId(`stream-${laneId}`);
+        const placeholder = byId(`placeholder-${laneId}`);
+        img.src = `/api/four-lane/stream/${laneId}?t=${Date.now()}`;
+        img.style.display = "block";
+        placeholder.style.display = "none";
+    }
+}
+
+function disableStreams() {
+    streamsStarted = false;
+    for (const laneId of LANES) {
+        const img = byId(`stream-${laneId}`);
+        const placeholder = byId(`placeholder-${laneId}`);
+        img.removeAttribute("src");
+        img.style.display = "none";
+        placeholder.style.display = "flex";
+    }
+}
+
+function updateSignalLights(laneId, signalColor) {
+    const color = String(signalColor || "RED").toUpperCase();
+    byId(`red-${laneId}`).classList.toggle("active", color === "RED");
+    byId(`yellow-${laneId}`).classList.toggle("active", color === "YELLOW");
+    byId(`green-${laneId}`).classList.toggle("active", color === "GREEN");
+    byId(`card-${laneId}`).classList.toggle("is-green", color === "GREEN");
+    byId(`card-${laneId}`).classList.toggle("is-yellow", color === "YELLOW");
+}
+
+function updateDashboardUI(data) {
+    latestSnapshot = data;
+    const running = Boolean(data.running);
+    const allCompleted = Boolean(data.all_completed);
+
+    const ambBanner = byId("ambBanner");
+    if (data.ambulance_priority && data.ambulance_lane) {
+        ambBanner.style.display = "block";
+        ambBanner.textContent = `AMBULANCE PRIORITY — ${formatLaneLabel(data.ambulance_lane)} switched to GREEN until ambulance clears!`;
+    } else {
+        ambBanner.style.display = "none";
+    }
+
+    if (allCompleted) {
+        byId("systemState").textContent = "COMPLETED";
+        byId("controlMsg").textContent = "All 4 lane videos completed. Click 'View Analysis' for the full report.";
+        byId("viewAnalysisBtn").style.display = "inline-block";
+    } else if (running) {
+        byId("systemState").textContent = data.signal_phase || "RUNNING";
+        byId("controlMsg").textContent = "Four-lane dynamic signal control running...";
+        enableStreams();
+    } else {
+        byId("systemState").textContent = "STOPPED";
+    }
+
+    byId("activeGreenLane").textContent = formatLaneLabel(data.active_lane || "—");
+
+    const lanesData = data.lanes || {};
+    let totalPassed = 0;
+
+    for (const laneId of LANES) {
+        const info = lanesData[laneId] || {};
+        const signal = String(info.signal || "RED").toUpperCase();
+        const isYellow = signal === "YELLOW";
+        const isGreen = signal === "GREEN";
+
+        const passed = Number(info.vehicles_passed ?? info.crossed ?? 0);
+        totalPassed += passed;
+        byId(`passed-${laneId}`).textContent = passed;
+
+        const badgeEl = byId(`traffic-badge-${laneId}`);
+        const level = String(info.locked_density || info.density || "PENDING").toUpperCase();
+        if (level !== "PENDING" || isYellow || isGreen) {
+            badgeEl.textContent = isYellow ? "Analysing (3s)..." : `Traffic: ${level}`;
+            badgeEl.className = `traffic-top-right ${isYellow ? "ANALYSING" : level}`;
+            badgeEl.style.display = "inline-block";
+        } else {
+            badgeEl.style.display = "none";
+        }
+
+        const hasAmbulance = Boolean(info.ambulance) || Number(info.ambulance_count || 0) > 0;
+        byId(`amb-${laneId}`).textContent = hasAmbulance ? "Yes" : "No";
+
+        updateSignalLights(laneId, signal);
+
+        const remaining = info.remaining_seconds ?? info.timer;
+        const timerWrap = byId(`timer-wrap-${laneId}`);
+        if (info.ambulance_priority) {
+            timerWrap.innerHTML = `Timer: <span>PRIORITY</span>`;
+        } else if (isYellow && remaining != null) {
+            timerWrap.innerHTML = `Yellow: <span>${Math.ceil(Number(remaining))}s</span>`;
+        } else if (isGreen && remaining != null) {
+            timerWrap.innerHTML = `Green: <span>${Math.ceil(Number(remaining))}s</span>`;
+        } else {
+            timerWrap.innerHTML = `Timer: <span>—</span>`;
+        }
+    }
+
+    byId("totalVehicles").textContent = totalPassed;
+}
+
+function renderAnalysis() {
+    if (!latestSnapshot || !latestSnapshot.lanes) return;
+    const lanesData = latestSnapshot.lanes;
+    const body = byId("analysisTableBody");
+    const chart = byId("barChart");
+    const labels = byId("barLabels");
+
+    body.replaceChildren();
+    chart.replaceChildren();
+    labels.replaceChildren();
+
+    let sumCars = 0, sumTrucks = 0, sumMotos = 0, sumBuses = 0, sumAmb = 0, sumAll = 0;
+    const laneStats = [];
+
+    for (const laneId of LANES) {
+        const info = lanesData[laneId] || {};
+        const classes = info.classes || {};
+        const cars = Number(classes.Car || 0);
+        const trucks = Number(classes.Truck || 0);
+        const motos = Number(classes.Motorcycle || 0);
+        const buses = Number(classes.Bus || 0);
+        const amb = Number(info.ambulance_count || 0);
+        const total = Number(info.vehicles_passed || 0);
+        const density = String(info.locked_density || info.density || "LOW").toUpperCase();
+        const yMax = Number(info.yellow_max_vehicles || 0);
+
+        sumCars += cars; sumTrucks += trucks; sumMotos += motos; sumBuses += buses; sumAmb += amb; sumAll += total;
+        laneStats.push({ laneId, cars, trucks, motos, buses, amb, total, density });
+
+        const tr = document.createElement("tr");
+        [formatLaneLabel(laneId), density, yMax, cars, trucks, motos, buses, amb, total].forEach((val) => {
+            const td = document.createElement("td");
+            td.textContent = val;
+            tr.appendChild(td);
+        });
+        body.appendChild(tr);
+    }
+
+    const totalRow = document.createElement("tr");
+    ["Total (All 4 Lanes)", "—", "—", sumCars, sumTrucks, sumMotos, sumBuses, sumAmb, sumAll].forEach((val) => {
+        const td = document.createElement("td");
+        td.textContent = val;
+        totalRow.appendChild(td);
+    });
+    body.appendChild(totalRow);
+
+    const maxTotal = Math.max(1, ...laneStats.map((s) => s.total));
+    for (const stat of laneStats) {
+        const group = document.createElement("div");
+        group.className = "bar-group";
+
+        const valLabel = document.createElement("div");
+        valLabel.style.cssText = "font-size:13px; font-weight:700; margin-bottom:6px;";
+        valLabel.textContent = `${stat.total} vehicles`;
+        group.appendChild(valLabel);
+
+        const stack = document.createElement("div");
+        stack.className = "bar-stack";
+        stack.style.height = stat.total > 0 ? `${Math.max(14, Math.round((stat.total / maxTotal) * 170))}px` : "4px";
+
+        if (stat.total > 0) {
+            [
+                { count: stat.cars, cls: "seg-car" },
+                { count: stat.trucks, cls: "seg-truck" },
+                { count: stat.motos, cls: "seg-moto" },
+                { count: stat.buses, cls: "seg-bus" },
+                { count: stat.amb, cls: "seg-amb" },
+            ].forEach((seg) => {
+                if (seg.count > 0) {
+                    const div = document.createElement("div");
+                    div.className = seg.cls;
+                    div.style.height = `${(seg.count / stat.total) * 100}%`;
+                    stack.appendChild(div);
+                }
+            });
+        }
+
+        group.appendChild(stack);
+        chart.appendChild(group);
+
+        const lbl = document.createElement("div");
+        lbl.style.width = "150px";
+        lbl.innerHTML = `${formatLaneLabel(stat.laneId)}<div style="font-size:11px; color:#64748b;">Traffic: ${stat.density}</div>`;
+        labels.appendChild(lbl);
+    }
+
+    const panel = byId("analysisPanel");
+    panel.style.display = "flex";
+    panel.scrollIntoView({ behavior: "smooth" });
+}
+
+async function pollStatus() {
+    try {
+        const res = await fetch("/api/four-lane/status", { cache: "no-store" });
+        if (!res.ok) return;
+        updateDashboardUI(await res.json());
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+byId("startBtn").addEventListener("click", async () => {
+    byId("startBtn").disabled = true;
+    byId("viewAnalysisBtn").style.display = "none";
+    byId("analysisPanel").style.display = "none";
+    disableStreams();
+    try {
+        const res = await fetch("/api/four-lane/start", { method: "POST" });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || "Failed to start.");
+        enableStreams();
+        if (data.state) updateDashboardUI(data.state);
+    } catch (err) {
+        byId("controlMsg").textContent = `Error: ${err.message}`;
+    } finally {
+        byId("startBtn").disabled = false;
+    }
+});
+
+byId("stopBtn").addEventListener("click", async () => {
+    byId("stopBtn").disabled = true;
+    try {
+        await fetch("/api/four-lane/stop", { method: "POST" });
+        byId("viewAnalysisBtn").style.display = "inline-block";
+        await pollStatus();
+    } finally {
+        byId("stopBtn").disabled = false;
+    }
+});
+
+byId("viewAnalysisBtn").addEventListener("click", renderAnalysis);
+
+pollStatus();
+window.setInterval(pollStatus, 500);
+</script>
+
+</body>
+</html>

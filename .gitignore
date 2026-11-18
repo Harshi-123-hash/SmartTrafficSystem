@@ -1,0 +1,13 @@
+__pycache__/ 
+*.py[cod] 
+venv/ 
+.venv/ 
+env/ 
+results/ 
+runs/ 
+data/videos/ 
+*.mp4 
+*.avi 
+*.mov 
+*.pt 
+.env

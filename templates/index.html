@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accident Detection & Emergency Response</title>
+
+    <style>
+        :root {
+            font-family: Arial, sans-serif;
+            color: #172033;
+            background: #f1f5f9;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        header {
+            background: #14213d;
+            color: #fff;
+            padding: 22px max(18px, calc((100% - 1200px) / 2));
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+        }
+
+        header p {
+            margin: 0;
+            color: #dbeafe;
+        }
+
+        .nav-link {
+            display: inline-block;
+            margin-top: 14px;
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+            border: 1px solid #93c5fd;
+            border-radius: 7px;
+            padding: 9px 13px;
+        }
+
+        .nav-link:hover {
+            background: #263b61;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .panel {
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px #0000000d;
+            margin-bottom: 18px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+        }
+
+        .note {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        button {
+            border: 0;
+            border-radius: 7px;
+            padding: 11px 16px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+            margin: 4px 4px 4px 0;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: .6;
+            cursor: wait;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 7px;
+            background: #eff6ff;
+            color: #1e40af;
+            margin-top: 12px;
+            overflow-wrap: anywhere;
+            font-weight: 600;
+        }
+
+        .success {
+            background: #f0fdf4;
+            color: #166534;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        .video-wrap {
+            max-width: 900px;
+        }
+
+        video {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: #0f172a;
+            border-radius: 9px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 850px;
+        }
+
+        th, td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        footer {
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+            font-size: 13px;
+        }
+
+        @media (max-width: 640px) {
+            header {
+                padding: 20px 16px;
+            }
+
+            .panel {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>Accident Detection & Emergency Response</h1>
+
+    <p>
+        Detect accidents, record incident details and trigger
+        the ambulance-response simulation.
+    </p>
+
+    <a class="nav-link" href="/upload">
+        Open Traffic & Ambulance Dashboard →
+    </a>
+</header>
+
+<main>
+
+    <!-- UPLOAD USER VIDEO FOR ACCIDENT DETECTION -->
+    <section class="panel">
+
+        <h2>Upload Video for Accident Detection</h2>
+
+        <p class="note">
+            Upload any traffic video (.mp4, .avi, .mov). Every uploaded video is analysed in the backend.
+            If an accident is detected, the annotated output video will be displayed below and recorded in the Accident Event History.
+        </p>
+
+        <form id="uploadVideoForm" enctype="multipart/form-data">
+            <input
+                id="videoFileInput"
+                name="video"
+                type="file"
+                accept="video/*"
+                required
+                style="max-width:420px;width:100%;margin:8px 8px 8px 0;background:#f8fafc"
+            >
+
+            <button id="uploadDetectButton" type="submit">
+                Upload &amp; Detect Accident
+            </button>
+        </form>
+
+        <div id="uploadResultStatus" class="status" role="status">
+            Select a video file and click "Upload &amp; Detect Accident".
+        </div>
+
+    </section>
+
+
+    <!-- ACCIDENT DETECTION VIDEO (DISPLAYED ONLY WHEN ACCIDENT IS DETECTED) -->
+    <section id="videoOutputSection" class="panel" style="display: none;">
+
+        <h2>Accident Detection Video</h2>
+
+        <p class="note">
+            Processed output generated by
+            <code>src/accident_detection.py</code>.
+        </p>
+
+        <div class="video-wrap">
+
+            <video id="accidentVideoPlayer" controls preload="metadata" playsinline></video>
+
+            <p class="note">
+                Output: <code id="outputFileNameLabel">accident_detected_output_web.mp4</code>
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- ACCIDENT EVENT HISTORY -->
+    <section class="panel">
+
+        <h2>Accident Event History</h2>
+
+        <p class="note">
+            Events are stored in your existing local SQLite database.
+        </p>
+
+        <div class="table-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Event Type</th>
+                        <th>Status</th>
+                        <th>Location</th>
+                        <th>Ambulance</th>
+                        <th>Distance</th>
+                        <th>ETA (minutes)</th>
+                        <th>Dispatch</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+
+                <tbody id="eventRows">
+
+                {% for alert in alerts|default([]) %}
+
+                    <tr>
+                        <td>{{ alert.time|default('') }}</td>
+
+                        <td>
+                            {{ alert.event_type|default('Incident') }}
+                        </td>
+
+                        <td>
+                            {{ alert.status|default('Unknown') }}
+                        </td>
+
+                        <td>
+                            {% if alert.latitude is not none and alert.longitude is not none %}
+                                {{ alert.latitude }}, {{ alert.longitude }}
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ alert.ambulance|default('N/A') }}
+                        </td>
+
+                        <td>
+                            {% if alert.distance_km is defined and alert.distance_km is not none %}
+                                {{ "%.2f"|format(alert.distance_km|float) }} km
+                            {% else %}
+                                {{ alert.distance|default('N/A') }}
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {{ alert.ambulance_eta_minutes|default('N/A', true) }}
+                        </td>
+
+                        <td>
+                            {{ alert.dispatch|default('Simulated') }}
+                        </td>
+
+                        <td>
+                            {{ alert.details|default('') }}
+                        </td>
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+                        <td colspan="9">
+                            No accident events recorded yet.
+                        </td>
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer>
+    Smart Traffic Safety System | Accident Detection Module
+</footer>
+
+
+<script>
+"use strict";
+
+const byId = (id) => document.getElementById(id);
+
+const eventRows = byId("eventRows");
+const uploadForm = byId("uploadVideoForm");
+const videoInput = byId("videoFileInput");
+const uploadButton = byId("uploadDetectButton");
+const uploadResultStatus = byId("uploadResultStatus");
+const videoOutputSection = byId("videoOutputSection");
+const accidentVideoPlayer = byId("accidentVideoPlayer");
+const outputFileNameLabel = byId("outputFileNameLabel");
+
+let uploadBusy = false;
+
+
+function setBanner(element, message, type = "info") {
+    element.textContent = message;
+    element.classList.remove("error", "success");
+    if (type === "error") {
+        element.classList.add("error");
+    } else if (type === "success") {
+        element.classList.add("success");
+    }
+}
+
+
+function hideAccidentVideo() {
+    videoOutputSection.style.display = "none";
+    accidentVideoPlayer.pause();
+    accidentVideoPlayer.removeAttribute("src");
+    accidentVideoPlayer.load();
+}
+
+
+async function readJson(response) {
+
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!contentType.includes("application/json")) {
+
+        const body = await response.text();
+
+        throw new Error(
+            `Expected JSON (HTTP ${response.status}): ${body.slice(0, 160)}`
+        );
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}`);
+    }
+
+    return data;
+}
+
+
+function appendCell(row, value) {
+
+    const cell = document.createElement("td");
+
+    cell.textContent =
+        value === null || value === undefined || value === ""
+            ? "N/A"
+            : String(value);
+
+    row.appendChild(cell);
+}
+
+
+function renderEvents(events) {
+
+    eventRows.replaceChildren();
+
+    if (!events.length) {
+
+        const row = document.createElement("tr");
+        const cell = document.createElement("td");
+
+        cell.colSpan = 9;
+        cell.textContent = "No accident events recorded yet.";
+
+        row.appendChild(cell);
+        eventRows.appendChild(row);
+
+        return;
+    }
+
+    for (const event of events) {
+
+        const row = document.createElement("tr");
+
+        const location =
+            event.latitude != null && event.longitude != null
+                ? `${event.latitude}, ${event.longitude}`
+                : "N/A";
+
+        const distance =
+            event.distance_km != null
+                ? `${Number(event.distance_km).toFixed(2)} km`
+                : (event.distance || "N/A");
+
+        [
+            event.time,
+            event.event_type,
+            event.status,
+            location,
+            event.ambulance,
+            distance,
+            event.ambulance_eta_minutes,
+            event.dispatch,
+            event.details
+        ].forEach(value => appendCell(row, value));
+
+        eventRows.appendChild(row);
+    }
+}
+
+
+async function refreshDashboard() {
+
+    try {
+
+        const response = await fetch("/api/dashboard-state", {
+            cache: "no-store",
+            headers: {
+                "Accept": "application/json"
+            }
+        });
+
+        const data = await readJson(response);
+
+        if (!data.state || !Array.isArray(data.events)) {
+            throw new Error(
+                "Accident dashboard API returned an invalid response."
+            );
+        }
+
+        renderEvents(data.events);
+
+    } catch (error) {
+        console.error("Accident dashboard refresh failed:", error);
+    }
+}
+
+
+// USER VIDEO UPLOAD & ACCIDENT DETECTION
+uploadForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    if (uploadBusy) return;
+
+    if (!videoInput.files || !videoInput.files.length) {
+        setBanner(uploadResultStatus, "Please select a video file first.", "error");
+        return;
+    }
+
+    const uploadedFile = videoInput.files[0];
+
+    uploadBusy = true;
+    uploadButton.disabled = true;
+
+    // Always hide video player while analysing the uploaded video
+    hideAccidentVideo();
+
+    setBanner(
+        uploadResultStatus,
+        `Uploading and analysing "${uploadedFile.name}" for accidents... Please wait.`,
+        "info"
+    );
+
+    try {
+
+        const formData = new FormData();
+        formData.append("video", uploadedFile);
+
+        const response = await fetch("/api/upload-accident-video", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await readJson(response);
+
+        if (data.accident_detected && data.video_url) {
+            outputFileNameLabel.textContent = `accident_detected_output_web.mp4 (from ${uploadedFile.name})`;
+            videoOutputSection.style.display = "block";
+            accidentVideoPlayer.src = data.video_url;
+            accidentVideoPlayer.load();
+            accidentVideoPlayer.play().catch(() => {});
+
+            setBanner(
+                uploadResultStatus,
+                `Result: ${data.status_text || "Accident detected"} — Recorded in Accident Event History.`,
+                "error"
+            );
+
+            await refreshDashboard();
+        } else {
+            hideAccidentVideo();
+
+            setBanner(
+                uploadResultStatus,
+                `Result: ${data.status_text || "No accident occurred"} in "${uploadedFile.name}".`,
+                "success"
+            );
+        }
+
+    } catch (error) {
+
+        hideAccidentVideo();
+        setBanner(
+            uploadResultStatus,
+            `Detection failed: ${error.message}`,
+            "error"
+        );
+
+    } finally {
+
+        uploadBusy = false;
+        uploadButton.disabled = false;
+    }
+});
+
+
+// INITIAL LOAD AND AUTOMATIC REFRESH
+refreshDashboard();
+
+window.setInterval(refreshDashboard, 5000);
+
+</script>
+
+</body>
+</html>
