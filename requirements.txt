@@ -1,0 +1,8 @@
+flask
+ultralytics
+opencv-python-headless
+numpy
+torch
+torchvision
+imageio-ffmpeg
+gunicorn app:app
