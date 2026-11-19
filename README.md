@@ -1,4 +1,3 @@
-# SmartTrafficSystem
 # 🚦 Intelligent Traffic Management System
 
 ### 🔗 Project Links
